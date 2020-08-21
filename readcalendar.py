@@ -30,7 +30,7 @@ def event_to_json(event):
     }
 
 def get_calendar_events(credentials_paths, max_days=-1):
-    calendars = [get_calendar(f'{credentials_path}/credentials.json') for credentials_path in credentials_paths]
+    calendars = [get_calendar('{}/credentials.json'.format(credentials_paths)) for credentials_path in credentials_paths]
     events = []
     for cal in calendars:
         for event in cal:
