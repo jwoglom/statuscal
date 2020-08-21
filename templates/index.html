@@ -181,10 +181,15 @@ function updateCalendar(events, now) {
             length = '';
         } else {
             eventType = 'normal';
-            time = 'right now';
-            if (timeMins < 1 && timeMins > -5) {
-                time = 'starting now';
-            } else if (timeMins >= 1 && timeMins < 60) {
+            time = '<b>now</b>';
+            length = 'for ' + lengthMins + ' min';
+
+            if (timeMins < -2) {
+                var endingMins = minDiff(event.end, now);
+                length = '<b>' + endingMins + '</b> left';
+            } else if (timeMins <= 2 && timeMins > -2) {
+                time = '<b>starting</b>';
+            } else if (timeMins > 2 && timeMins < 60) {
                 time = 'in <b>' + parseInt(timeMins) + ' min</b>';
             } else if (timeMins < 4 * 60) {
                 var timeHalfHours = parseInt(timeMins / 30);
@@ -195,7 +200,6 @@ function updateCalendar(events, now) {
                 time = '<b>' + printDayOfWeek(startDate) + '</b>';
             }
 
-            length = 'for ' + lengthMins + ' min';
         }
 
         var attendees = "";
