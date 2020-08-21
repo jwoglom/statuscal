@@ -182,11 +182,11 @@ function updateCalendar(events, now) {
         } else {
             eventType = 'normal';
             time = '<b>now</b>';
-            length = 'for ' + lengthMins + ' min';
+            length = 'for <b>' + lengthMins + ' min</b>';
 
             if (timeMins < -2) {
                 var endingMins = minDiff(event.end, now);
-                length = '<b>' + endingMins + '</b> left';
+                length = '<b>' + parseInt(endingMins) + ' min</b> left';
             } else if (timeMins <= 2 && timeMins > -2) {
                 time = '<b>starting</b>';
             } else if (timeMins > 2 && timeMins < 60) {
