@@ -254,6 +254,12 @@ window.onload = function() {
         updateCalendar(window.events, new Date());
     }, 1000 * 60);
     setInterval(fetchCalendar, 1000 * 60 * 60);
+
+    if (window.location.search.indexOf('zoom=')) {
+        var zoomParam = window.location.search.split('zoom=')[1];
+        zoomParam = zoomParam.split('&')[0];
+        document.body.style.zoom = zoomParam;
+    }
 }
     </script>
     <script id='event' type='text/template'>
