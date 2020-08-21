@@ -119,14 +119,25 @@ function updateBgColors(now) {
         var date = new Date(e.getAttribute("data-start"));
         var minsUntil = minDiff(date, now);
         console.log('event:', date, 'until:', minsUntil);
-        var color = Math.max(0, Math.min(minsUntil, 128));
+        var midColor = 128;
+        if (minsUntil < 60) {
+            midColor = Math.max(68, Math.min(68 + minsUntil, 128));
+        }
 
-        color -= 20 * count;
-        color = Math.max(0, Math.min(color, 128));
+        var firstColor = 128;
+        var lastColor = 0;
 
-        e.style.background = 'rgb(128, ' + color + ', 0)';
+        firstColor -= 20 * count;
+        midColor = Math.max(0, Math.min(midColor, 255));
 
-        count++;
+        lastColor += 20 * count;
+        lastColor = Math.max(0, Math.min(lastColor, 128));
+
+        e.style.background = 'rgb('+firstColor+', ' + midColor + ', '+lastColor+')';
+
+        if (minsUntil > 0) {
+            count++;
+        }
 
     })
 }
@@ -136,15 +147,16 @@ function fetchCalendar() {
     //var jsonPath = "../sample_events.json";
     superagent.get(jsonPath, function(resp) {
         var data = JSON.parse(resp.text);
-        updateCalendar(data["events"]);
+        updateCalendar(data["events"], new Date());
     })
 }
 
-function updateCalendar(events) {
+function updateCalendar(events, now) {
+    window.events = events;
     var container = document.querySelector(".container");
     container.innerHTML = '';
     events.forEach(function(event) {
-        var timeMins = minDiff(event.start, new Date());
+        var timeMins = minDiff(event.start, now);
         var lengthMins = parseInt(minDiff(event.end, event.start));
 
         var startDate = new Date(event.start);
@@ -171,10 +183,10 @@ function updateCalendar(events) {
             if (timeMins < 1 && timeMins > -5) {
                 time = 'starting now';
             } else if (timeMins >= 1 && timeMins < 60) {
-                time = 'in <b>' + timeMins + ' min</b>';
+                time = 'in <b>' + parseInt(timeMins) + ' min</b>';
             } else if (timeMins < 4 * 60) {
                 var timeHalfHours = parseInt(timeMins / 30);
-                time = 'in <b>' + (timeHalfHours / 2) + ' hr' + (timeHalfHours > 2 ? 's' : '') + '</b>';
+                time = 'in <b>' + parseInt(timeHalfHours / 2) + ' hr' + (timeHalfHours > 2 ? 's' : '') + '</b>';
             } else if (timeMins < 24 * 60) {
                 time = 'at <b>' + printHourMin(startDate) + '</b>';
             } else {
@@ -185,7 +197,8 @@ function updateCalendar(events) {
         }
 
         var attendees = "";
-        if (event.attendees) {
+        if (event.attendees && event.attendees.length > 0) {
+            attendees += "Attending: ";
             event.attendees.forEach(function(e) {
                 var atIndex = e.email.indexOf('@');
                 attendees += e.email.substr(0, atIndex);
@@ -218,7 +231,7 @@ function updateCalendar(events) {
             'eventType': eventType
         });
     });
-    updateBgColors(new Date());
+    updateBgColors(now);
 }
 
 function eventClick(ths) {
@@ -246,7 +259,7 @@ window.onload = function() {
     <div class="secondary">
         <h2>{startDisp} - {endDisp}</h2>
         <h3>{location}</h3>
-        <h3>Attending: {attendees}</h3>
+        <h3>{attendees}</h3>
     </div>
 </div>
     </script>
