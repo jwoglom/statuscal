@@ -143,11 +143,13 @@ function updateBgColors(now) {
 }
 
 function fetchCalendar() {
+    console.log("Fetching calendar at", new Date());
     var jsonPath = location.pathname + "/events.json";
     //var jsonPath = "../sample_events.json";
     superagent.get(jsonPath, function(resp) {
         var data = JSON.parse(resp.text);
         updateCalendar(data["events"], new Date());
+        console.log("fetchCalendar complete at", new Date());
     })
 }
 
@@ -230,19 +232,28 @@ function updateCalendar(events, now) {
             'id': event.id,
             'eventType': eventType
         });
+        if (event.id in window.eventClasses) {
+            document.querySelector('.event[data-id="' + event.id + '"').setAttribute('class', window.eventClasses[event.id]);
+        }
     });
     updateBgColors(now);
 }
 
+window.eventClasses = {};
 function eventClick(ths) {
     var ths = ths || this;
 
     ths.classList.toggle('clicked');
+    window.eventClasses[ths.getAttribute("data-id")] = ths.getAttribute("class");
 
 }
 
 window.onload = function() {
     fetchCalendar();
+    setInterval(function() {
+        updateCalendar(window.events, new Date());
+    }, 1000 * 60);
+    setInterval(fetchCalendar, 1000 * 60 * 60);
 }
     </script>
     <script id='event' type='text/template'>
