@@ -1,1 +1,261 @@
-Index
+<!doctype html>
+<html>
+<head>
+    <title>Statuscal</title>
+
+    <style>
+body, .container {
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    background: #343a40;
+    margin: 0;
+    padding: 0;
+}
+
+.event {
+    background: yellow;
+    width: auto;
+    padding: 20px;
+}
+
+.event .primary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.event h1 {
+    font-size: 45px;
+    margin: 0;
+}
+
+.event h2 {
+    font-size: 30px;
+    margin: 5px;
+}
+
+.event h3 {
+    font-size: 25px;
+    margin: 5px;
+}
+
+.event .left {
+    /* fix truncated text */
+    min-width: 0;
+}
+
+.event:not(.clicked) .left h1,
+.event:not(.clicked) .left h3 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event .right {
+    text-align: center;
+    min-width: 250px;
+}
+
+.event .time {
+    font-size: 50px;
+    font-weight: 100;
+}
+
+.event .length {
+    font-size: 30px;
+    font-weight: 100;
+    padding-top: 5px;
+}
+
+.event:not(.clicked) .secondary {
+    display: none;
+}
+    </style>
+    <script src="/static/js/superagent.js"></script>
+    <script>
+function render(tplId, dict) {
+    var tpl = document.querySelector("script#" + tplId);
+    var html = tpl.innerHTML;
+    for (var key in dict) {
+        html = html.replace(new RegExp("\\{" + key + "\\}", "g"), dict[key]);
+    }
+    return html;
+}
+
+function safe(txt) {
+    var tmp = document.createElement('div');
+    tmp.innerText = txt;
+    return tmp.innerHTML;
+}
+
+function minDiff(future, past) {
+    return (+new Date(future) - +new Date(past)) / (1000 * 60);
+}
+
+function printHourMin(date) {
+    var hr = date.getHours();
+    var mn = date.getMinutes();
+    if (hr < 12) {
+        if (hr == 0) hr = 12;
+        return hr + ':' + printWithZero(mn) + 'a';
+    }
+    if (hr == 12) hr += 12;
+    return (hr-12) + ':' + printWithZero(mn) + 'p';
+}
+
+function printWithZero(n) {
+    if (n < 10) {
+        return '0' + n;
+    }
+    return ''+n;
+}
+
+function printDayOfWeek(date) {
+    return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+}
+
+function updateBgColors(now) {
+    var count = 0;
+    document.querySelectorAll(".event").forEach(function(e) {
+        var date = new Date(e.getAttribute("data-start"));
+        var minsUntil = minDiff(date, now);
+        console.log('event:', date, 'until:', minsUntil);
+        var color = Math.max(0, Math.min(minsUntil, 128));
+
+        color -= 20 * count;
+        color = Math.max(0, Math.min(color, 128));
+
+        e.style.background = 'rgb(128, ' + color + ', 0)';
+
+        count++;
+
+    })
+}
+
+function fetchCalendar() {
+    var jsonPath = location.pathname + "/events.json";
+    //var jsonPath = "../sample_events.json";
+    superagent.get(jsonPath, function(resp) {
+        var data = JSON.parse(resp.text);
+        updateCalendar(data["events"]);
+    })
+}
+
+function updateCalendar(events) {
+    var container = document.querySelector(".container");
+    container.innerHTML = '';
+    events.forEach(function(event) {
+        var timeMins = minDiff(event.start, new Date());
+        var lengthMins = parseInt(minDiff(event.end, event.start));
+
+        var startDate = new Date(event.start);
+        var endDate = new Date(event.end);
+
+        console.log(event.summary, timeMins, lengthMins, event);
+        // Hide events that have already finished if they still appear
+        if (timeMins < -1 * lengthMins) {
+            return;
+        }
+
+        var eventType, time, length;
+        if (lengthMins == 0) {
+            eventType = 'reminder';
+            time = 'reminder';
+            length = '';
+        } else if (lengthMins == 1440) {
+            eventType = 'allday';
+            time = 'all day';
+            length = '';
+        } else {
+            eventType = 'normal';
+            time = 'right now';
+            if (timeMins < 1 && timeMins > -5) {
+                time = 'starting now';
+            } else if (timeMins >= 1 && timeMins < 60) {
+                time = 'in <b>' + timeMins + ' min</b>';
+            } else if (timeMins < 4 * 60) {
+                var timeHalfHours = parseInt(timeMins / 30);
+                time = 'in <b>' + (timeHalfHours / 2) + ' hr' + (timeHalfHours > 2 ? 's' : '') + '</b>';
+            } else if (timeMins < 24 * 60) {
+                time = 'at <b>' + printHourMin(startDate) + '</b>';
+            } else {
+                time = '<b>' + printDayOfWeek(startDate) + '</b>';
+            }
+
+            length = 'for ' + lengthMins + ' min';
+        }
+
+        var attendees = "";
+        if (event.attendees) {
+            event.attendees.forEach(function(e) {
+                var atIndex = e.email.indexOf('@');
+                attendees += e.email.substr(0, atIndex);
+                if (e.response_status == 'accepted') {
+                    attendees += ' (✓)';
+                }
+                attendees += ", ";
+            });
+            attendees = attendees.substr(0, attendees.length - 2);
+            if (attendees.length > 100) {
+                attendees = attendees.substr(0, 97) + "...";
+            }
+        }
+
+        var startDisp = printDayOfWeek(startDate) + " " + printHourMin(startDate);
+        var endDisp = (printDayOfWeek(endDate) != printDayOfWeek(startDate) ? printDayOfWeek(endDate) + " " : "") + printHourMin(endDate);
+
+        container.innerHTML += render('event', {
+            'summary': safe(event.summary),
+            'description': safe(event.description),
+            'time': time,
+            'length': length,
+            'location': safe(event.location),
+            'attendees': attendees,
+            'start': event.start,
+            'end': event.end,
+            'startDisp': startDisp,
+            'endDisp': endDisp,
+            'id': event.id,
+            'eventType': eventType
+        });
+    });
+    updateBgColors(new Date());
+}
+
+function eventClick(ths) {
+    var ths = ths || this;
+
+    ths.classList.toggle('clicked');
+
+}
+
+window.onload = function() {
+    fetchCalendar();
+}
+    </script>
+    <script id='event' type='text/template'>
+<div class="event {eventType}" data-start="{start}" data-id="{id}" onclick="eventClick(this)">
+    <div class="primary">
+        <div class="left">
+            <h1>{summary}</h1>
+        </div>
+        <div class="right">
+            <div class="time">{time}</div>
+            <div class="length">{length}</div>
+        </div>
+    </div>
+    <div class="secondary">
+        <h2>{startDisp} - {endDisp}</h2>
+        <h3>{location}</h3>
+        <h3>Attending: {attendees}</h3>
+    </div>
+</div>
+    </script>
+</head>
+<body>
+
+<div class="container">
+
+</div>
+
+</body>
+</html>

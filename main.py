@@ -45,9 +45,11 @@ def events(token):
         return abort(403, description='Forbidden')
 
     max_days = request.args.get('max_days', 7)
-
     events = get_calendar_events(credentials_paths, max_days=max_days)
-
     data = {"events": list(map(event_to_json, events))}
 
     return jsonify(data)
+
+@app.route('/static/<path:path>')
+def static_path(path):
+    return send_from_directory('static', path)

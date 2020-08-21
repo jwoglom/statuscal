@@ -8,10 +8,11 @@ def get_calendar(path):
 
 def event_to_json(event):
     return {
-        'num_attendees': [{
+        'attendees': sorted([{
                 'display_name': a.display_name,
-                'email': a.email
-            } for a in event.attendees],
+                'email': a.email,
+                'response_status': a.response_status
+            } for a in event.attendees], key=lambda a: a['response_status']),
         'color_id': event.color_id,
         'description': event.description,
         'end': event.end,
