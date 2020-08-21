@@ -1,0 +1,11 @@
+.DS_Store
+.vscode
+__pycache__
+__pycache__/*
+
+credentials/
+credentials/*
+credentials.json
+*/credentials.json
+token.pickle
+*/token.pickle
