@@ -8,7 +8,10 @@ def get_calendar(path):
 
 def event_to_json(event):
     return {
-        'attendees': event.attendees,
+        'num_attendees': [{
+                'display_name': a.display_name,
+                'email': a.email
+            } for a in event.attendees],
         'color_id': event.color_id,
         'description': event.description,
         'end': event.end,
@@ -16,7 +19,10 @@ def event_to_json(event):
         'location': event.location,
         'other': event.other,
         'recurrence': event.recurrence,
-        'reminders': event.reminders,
+        'reminders': [{
+                'method': r.method,
+                'minutes_before_start': r.minutes_before_start
+            } for r in event.reminders],
         'start': event.start,
         'summary': event.summary,
         'timezone': event.timezone
@@ -37,7 +43,7 @@ def get_calendar_events(credentials_paths, max_days=-1):
 
     events.sort(key=lambda e: to_datetime(e.start).replace(tzinfo=None))
     if max_days > 0:
-        events = filter(lambda e: (to_datetime(e.start).replace(tzinfo=None) - datetime.datetime.now()).days <= max_days, events)
+        events = list(filter(lambda e: (to_datetime(e.start).replace(tzinfo=None) - datetime.datetime.now()).days <= max_days, events))
     return events
 
 def main():
