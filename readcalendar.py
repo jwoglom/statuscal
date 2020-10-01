@@ -2,11 +2,10 @@ from gcsa.google_calendar import GoogleCalendar
 
 import datetime
 
-def get_calendar(path):
-    calendar = GoogleCalendar(calendar='primary', credentials_path=path)
-    return list(calendar)
+def get_calendar(calendar_id, path):
+    return GoogleCalendar(calendar=calendar_id, credentials_path=path)
 
-def event_to_json(event):
+def event_to_json(event, calendar_name):
     return {
         'attendees': sorted([{
                 'display_name': a.display_name,
@@ -26,15 +25,22 @@ def event_to_json(event):
             } for r in event.reminders],
         'start': event.start,
         'summary': event.summary,
-        'timezone': event.timezone
+        'timezone': event.timezone,
+        'calendar_name': calendar_name,
     }
 
-def get_calendar_events(credentials_paths, max_days=-1):
-    calendars = [get_calendar('{}/credentials.json'.format(credentials_path)) for credentials_path in credentials_paths]
+def get_calendar_events(credentials_config, max_days=-1):
+    time_max = (datetime.datetime.now() + datetime.timedelta(days=max_days)) if max_days > 0 else None
+
     events = []
-    for cal in calendars:
-        for event in cal:
-            events.append(event)
+    for config in credentials_config:
+        cid = config['calendar_id'] if 'calendar_id' in config else 'primary'
+        name = config['calendar_name'] if 'calendar_name' in config else None
+        json = '{}/credentials.json'.format(config['credentials_path'])
+
+        calendar = get_calendar(cid, json)
+        for event in calendar.get_events(time_max=time_max):
+            events.append(event_to_json(event, calendar_name=name))
 
     def to_datetime(d):
         if type(d) == datetime.date:
@@ -42,15 +48,5 @@ def get_calendar_events(credentials_paths, max_days=-1):
 
         return d
 
-    events.sort(key=lambda e: to_datetime(e.start).replace(tzinfo=None))
-    if max_days > 0:
-        events = list(filter(lambda e: (to_datetime(e.start).replace(tzinfo=None) - datetime.datetime.now()).days <= max_days, events))
+    events.sort(key=lambda e: to_datetime(e['start']).replace(tzinfo=None))
     return events
-
-def main():
-    for e in get_calendar_events(['test']):
-        print('event:', e.start, '-', e)
-
-
-if __name__ == '__main__':
-    main()

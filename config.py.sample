@@ -1,0 +1,36 @@
+
+boards = {
+    # This is a statuscal board which is visible at /person_one, and displays
+    # events from all of the given calendars:
+    'person_one': [
+        {
+            # A calendar to be displayed on the board
+            'calendar_name': 'My Calendar',
+            # 'primary' references the default calendar for the user
+            'calendar_id': 'primary',
+            # The folder with credentials for a user account with access to this calendar.
+            'credentials_path': 'credentials/person_one_calendar',
+        },
+        {
+            # A different calendar which the same user has access to
+            'calendar_name': 'My Shared Calendar',
+            # Either an email address or Calendar ID
+            'calendar_id': 'calendar_id',
+            'credentials_path': 'credentials/person_one_calendar',
+        },
+        {
+            # A different calendar with separate Google account credentials
+            'calendar_name': 'My Work Calendar',
+            'calendar_id': 'primary',
+            'credentials_path': 'credentials/person_one_work',
+        }
+    ],
+    # An entirely different statuscal board for a different person
+    'person_two': [
+        {
+            'calendar_name': 'Person Two Calendar',
+            'calendar_id': 'primary',
+            'credentials_path': 'credentials/person_two',
+        },
+    ]
+}
