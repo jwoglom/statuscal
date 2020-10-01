@@ -166,6 +166,7 @@ function updateCalendar(events, now) {
     window.events = events;
     var container = document.querySelector(".container");
     container.innerHTML = '';
+    var processedEvents = [];
     events.forEach(function(event) {
         var timeMins = minDiff(event.start, now);
         var lengthMins = parseInt(minDiff(event.end, event.start));
@@ -174,6 +175,14 @@ function updateCalendar(events, now) {
         var endDate = new Date(event.end);
 
         console.log(event.summary, timeMins, lengthMins, event);
+
+        // Skip duplicated events (on multiple calendars)
+        if (processedEvents.indexOf(event.summary + startDate + endDate) != -1) {
+            console.log('skipping duplicate')
+            return;
+        }
+        processedEvents.push(event.summary + startDate + endDate);
+
         // Hide events that have already finished if they still appear
         if (timeMins < -1 * lengthMins) {
             return;
@@ -184,16 +193,36 @@ function updateCalendar(events, now) {
             eventType = 'reminder';
             time = 'reminder';
             length = '';
-        } else if (lengthMins == 1440) {
+        } else if (lengthMins >= 1440) {
             eventType = 'allday';
             time = 'all day';
-            length = '';
+            if (lengthMins > 1440) {
+                length = 'until <b>' + printDayOfWeek(endDate) + '</b>';
+            } else {
+                length = '';
+            }
         } else {
             eventType = 'normal';
             time = '<b>now</b>';
-            length = 'for <b>' + lengthMins + ' min</b>';
+            if (lengthMins < 60) {
+                length = 'for <b>' + lengthMins + ' min</b>';
+            } else if (lengthMins < 4 * 60) {
+                var lengthHalfHours = parseInt(lengthMins / 30);
+                length = 'for <b>' + (lengthHalfHours / 2) + ' hr' + (lengthHalfHours > 2 ? 's' : '') + '</b>';
+            } else {
+                var lengthHours = parseInt(lengthMins / 60);
+                length = 'for <b>' + lengthHours + ' hrs</b>';
+            }
 
-            if (timeMins < -2) {
+            if (timeMins < -120) {
+                var endingMins = minDiff(event.end, now);
+                var endingHours = parseInt(endingMins / 60);
+                length = '<b>' + endingHours + ' hrs</b> left';
+            } else if (timeMins <= -60) {
+                var endingMins = minDiff(event.end, now);
+                var endingHalfHours = parseInt(endingMins / 30);
+                length = '<b>' + (endingHalfHours / 2) + ' hr' + (endingHalfHours > 2 ? 's' : '') + '</b> left';
+            } else if (timeMins < -2) {
                 var endingMins = minDiff(event.end, now);
                 length = '<b>' + parseInt(endingMins) + ' min</b> left';
             } else if (timeMins <= 2 && timeMins > -2) {
@@ -202,8 +231,8 @@ function updateCalendar(events, now) {
                 time = 'in <b>' + parseInt(timeMins) + ' min</b>';
             } else if (timeMins < 4 * 60) {
                 var timeHalfHours = parseInt(timeMins / 30);
-                time = 'in <b>' + parseInt(timeHalfHours / 2) + ' hr' + (timeHalfHours > 2 ? 's' : '') + '</b>';
-            } else if (timeMins < 24 * 60) {
+                time = 'in <b>' + (timeHalfHours / 2) + ' hr' + (timeHalfHours > 2 ? 's' : '') + '</b>';
+            } else if (timeMins < 12 * 60 || printDayOfWeek(new Date(event.start)) == printDayOfWeek(new Date())) {
                 time = 'at <b>' + printHourMin(startDate) + '</b>';
             } else {
                 time = '<b>' + printDayOfWeek(startDate) + '</b>';
@@ -268,7 +297,7 @@ window.onload = function() {
     }, 1000 * 60);
     setInterval(fetchCalendar, 1000 * 60 * 60);
 
-    if (window.location.search.indexOf('zoom=')) {
+    if (window.location.search.indexOf('zoom=') != -1) {
         var zoomParam = window.location.search.split('zoom=')[1];
         zoomParam = zoomParam.split('&')[0];
         document.body.style.zoom = zoomParam;
