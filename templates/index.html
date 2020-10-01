@@ -126,10 +126,22 @@ function updateBgColors(now) {
     var count = 0;
     document.querySelectorAll(".event").forEach(function(e) {
         var date = new Date(e.getAttribute("data-start"));
+        var dateEnd = new Date(e.getAttribute("data-end"));
+
         var minsUntil = minDiff(date, now);
-        console.log('event:', date, 'until:', minsUntil);
+        var minsUntilEnd = minDiff(dateEnd, now);
+        var minsTotal = minDiff(dateEnd, date);
+
         var midColor = 128;
-        if (minsUntil < 60) {
+        if (minsTotal >= 1440) {
+            // Keep solid color for full day events
+            midColor = 128;
+        } else if (minsUntil < 0) {
+            // While events are occurring, make them focus out
+            var ratio = 60 * ((minsTotal - minsUntilEnd) / minsTotal);
+            midColor = Math.max(68, Math.min(68 + ratio, 128));
+        } else if (minsUntil < 60) {
+            // As it gets closer to events occurring, make them focus in
             midColor = Math.max(68, Math.min(68 + minsUntil, 128));
         }
 
@@ -137,7 +149,7 @@ function updateBgColors(now) {
         var lastColor = 0;
 
         firstColor -= 20 * count;
-        midColor = Math.max(0, Math.min(midColor, 255));
+        firstColor = Math.max(0, Math.min(firstColor, 255));
 
         lastColor += 20 * count;
         lastColor = Math.max(0, Math.min(lastColor, 128));
@@ -168,6 +180,13 @@ function updateCalendar(events, now) {
     container.innerHTML = '';
     var processedEvents = [];
     events.forEach(function(event) {
+        // Force all-day events to properly show up in EST timezone
+        // (Changes e.g. "Wednesday 8pm - Thursday 8pm" to "Thursday 12am - Friday 12am")
+        if (event.start.endsWith('00:00:00 GMT') && event.end.endsWith('00:00:00 GMT')) {
+            event.start = event.start.replace('GMT', 'GMT-0400');
+            event.end = event.end.replace('GMT', 'GMT-0400');
+        }
+
         var timeMins = minDiff(event.start, now);
         var lengthMins = parseInt(minDiff(event.end, event.start));
 
@@ -195,7 +214,11 @@ function updateCalendar(events, now) {
             length = '';
         } else if (lengthMins >= 1440) {
             eventType = 'allday';
-            time = 'all day';
+            if (printDayOfWeek(startDate) == printDayOfWeek(now)) {
+                time = '<b>all day</b>';
+            } else {
+                time = '<b>' + printDayOfWeek(startDate) + '</b>';
+            }
             if (lengthMins > 1440) {
                 length = 'until <b>' + printDayOfWeek(endDate) + '</b>';
             } else {
@@ -232,7 +255,7 @@ function updateCalendar(events, now) {
             } else if (timeMins < 4 * 60) {
                 var timeHalfHours = parseInt(timeMins / 30);
                 time = 'in <b>' + (timeHalfHours / 2) + ' hr' + (timeHalfHours > 2 ? 's' : '') + '</b>';
-            } else if (timeMins < 12 * 60 || printDayOfWeek(new Date(event.start)) == printDayOfWeek(new Date())) {
+            } else if (timeMins < 12 * 60 || printDayOfWeek(startDate) == printDayOfWeek(now)) {
                 time = 'at <b>' + printHourMin(startDate) + '</b>';
             } else {
                 time = '<b>' + printDayOfWeek(startDate) + '</b>';
@@ -272,7 +295,8 @@ function updateCalendar(events, now) {
             'startDisp': startDisp,
             'endDisp': endDisp,
             'id': event.id,
-            'eventType': eventType
+            'eventType': eventType,
+            'calendarName': safe(event.calendar_name)
         });
         if (event.id in window.eventClasses) {
             document.querySelector('.event[data-id="' + event.id + '"').setAttribute('class', window.eventClasses[event.id]);
@@ -302,10 +326,30 @@ window.onload = function() {
         zoomParam = zoomParam.split('&')[0];
         document.body.style.zoom = zoomParam;
     }
+
+    if (window.location.search.indexOf('wheel=') != -1) {
+        var wheelParam = window.location.search.split('wheel=')[1];
+        wheelParam = wheelParam.split('&')[0];
+        if (wheelParam.length == 0) wheelParam = new Date();
+        var n = +new Date(parseInt(wheelParam));
+        setTimeout(function() {
+            setInterval(function() {
+                console.log(new Date(n));
+                updateBgColors(new Date(n));
+                document.querySelectorAll(".event").forEach(function(e) {
+                    var dateEnd = new Date(e.getAttribute("data-end"));
+                    if (minDiff(dateEnd, new Date(n)) < 0) {
+                        e.style.display = 'none';
+                    }
+                });
+                n += 60 * 1000;
+            }, 100);
+        }, 3000);
+    }
 }
     </script>
     <script id='event' type='text/template'>
-<div class="event {eventType}" data-start="{start}" data-id="{id}" onclick="eventClick(this)">
+<div class="event {eventType}" data-start="{start}" data-end="{end}" ata-id="{id}" onclick="eventClick(this)">
     <div class="primary">
         <div class="left">
             <h1>{summary}</h1>
@@ -316,7 +360,7 @@ window.onload = function() {
         </div>
     </div>
     <div class="secondary">
-        <h2>{startDisp} - {endDisp}</h2>
+        <h2>{startDisp} - {endDisp} ({calendarName})</h2>
         <h3>{location}</h3>
         <h3>{attendees}</h3>
     </div>
