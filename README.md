@@ -33,6 +33,13 @@ pipenv install
 
 Follow the [Getting Started instructions for google-calendar-simple-api](https://google-calendar-simple-api.readthedocs.io/en/latest/getting_started.html) to configure Google Calendar API credentials.
 
+> 
+> * Go to [Calendar API Quickstart](https://developers.google.com/calendar/quickstart/python#step_1_turn_on_the)
+> * Click "ENABLE THE GOOGLE CALENDAR API"
+> * Choose "TV or other limited input device"
+> * Click "DOWNLOAD CLIENT CONFIGURATION"
+
+
 Once you have a `credentials.json` file, create a folder inside `credentials` to put it in, e.g.:
 
 ```bash
@@ -99,6 +106,9 @@ Now, simply start the Flask server:
 ```bash
 FLASK_APP=app.py flask run
 ```
+
+The very first time you run Statuscal, you will be prompted in the terminal to authorize with your Google account.
+After you authorize, a token.pickle file will be created in the credentials folder which won't require this to be done again.
 
 In production, you can run the application with Gunicorn inside a virtualenv using a script such as the following:
 
