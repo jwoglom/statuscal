@@ -9,14 +9,14 @@ boards = {
             # 'primary' references the default calendar for the user
             'calendar_id': 'primary',
             # The folder with credentials for a user account with access to this calendar.
-            'credentials_path': 'credentials/person_one_calendar',
+            'credentials_path': 'credentials/person_one_personal',
         },
         {
             # A different calendar which the same user has access to
             'calendar_name': 'My Shared Calendar',
             # Either an email address or Calendar ID
             'calendar_id': 'calendar_id',
-            'credentials_path': 'credentials/person_one_calendar',
+            'credentials_path': 'credentials/person_one_personal',
         },
         {
             # A different calendar with separate Google account credentials
