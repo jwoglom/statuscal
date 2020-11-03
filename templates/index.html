@@ -180,11 +180,19 @@ function updateCalendar(events, now) {
     container.innerHTML = '';
     var processedEvents = [];
     events.forEach(function(event) {
-        // Force all-day events to properly show up in EST timezone
+        // Force all-day events to properly show up in the user's local timezone
         // (Changes e.g. "Wednesday 8pm - Thursday 8pm" to "Thursday 12am - Friday 12am")
         if (event.start.endsWith('00:00:00 GMT') && event.end.endsWith('00:00:00 GMT')) {
-            event.start = event.start.replace('GMT', 'GMT-0400');
-            event.end = event.end.replace('GMT', 'GMT-0400');
+            var dateParts = ('' + new Date()).split(' ');
+            var currentTz = 'GMT-0400';
+            for (var i=0; i<dateParts.length; i++) {
+                if (dateParts[i].startsWith('GMT')) {
+                    currentTz = dateParts[i];
+                    break;
+                }
+            }
+            event.start = event.start.replace('GMT', currentTz);
+            event.end = event.end.replace('GMT', currentTz);
         }
 
         var timeMins = minDiff(event.start, now);
