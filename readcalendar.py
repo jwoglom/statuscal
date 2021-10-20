@@ -46,6 +46,8 @@ def get_calendar_events(credentials_config, max_days=-1):
         if type(d) == datetime.date:
             return datetime.datetime.combine(d, datetime.datetime.min.time())
 
+        if d is None:
+            return datetime.datetime(2000,1,1)
         return d
 
     events.sort(key=lambda e: to_datetime(e['start']).replace(tzinfo=None))

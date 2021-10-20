@@ -180,6 +180,7 @@ function updateCalendar(events, now) {
     container.innerHTML = '';
     var processedEvents = [];
     events.forEach(function(event) {
+        if (!event.start || !event.end) return;
         // Force all-day events to properly show up in the user's local timezone
         // (Changes e.g. "Wednesday 8pm - Thursday 8pm" to "Thursday 12am - Friday 12am")
         if (event.start.endsWith('00:00:00 GMT') && event.end.endsWith('00:00:00 GMT')) {
