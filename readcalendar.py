@@ -39,7 +39,7 @@ def get_calendar_events(credentials_config, max_days=-1):
         json = '{}/credentials.json'.format(config['credentials_path'])
 
         calendar = get_calendar(cid, json)
-        for event in calendar.get_events(time_max=time_max):
+        for event in calendar.get_events(time_max=time_max, single_events=True):
             events.append(event_to_json(event, calendar_name=name))
 
     def to_datetime(d):
