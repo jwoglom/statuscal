@@ -1,9 +1,13 @@
 from gcsa.google_calendar import GoogleCalendar
+import google
 
 import datetime
 
 def get_calendar(calendar_id, path):
-    return GoogleCalendar(calendar=calendar_id, credentials_path=path)
+    try:
+        return GoogleCalendar(calendar=calendar_id, credentials_path=path)
+    except google.auth.exceptions.RefreshError as e:
+        raise RuntimeError('Please delete {} and restart to re-authenticate with Google Calendar'.format(path.replace('credentials.json','token.pickle'))) from e
 
 def event_to_json(event, calendar_name):
     return {

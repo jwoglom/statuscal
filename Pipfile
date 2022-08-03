@@ -11,3 +11,5 @@ gunicorn = "*"
 eventlet = "*"
 Flask = "*"
 
+[scripts]
+statuscal = "bash -c 'FLASK_APP=app.py flask run'"

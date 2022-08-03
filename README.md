@@ -33,11 +33,10 @@ pipenv install
 
 Follow the [Getting Started instructions for google-calendar-simple-api](https://google-calendar-simple-api.readthedocs.io/en/latest/getting_started.html) to configure Google Calendar API credentials.
 
-> 
-> * Go to [Calendar API Quickstart](https://developers.google.com/calendar/quickstart/python#step_1_turn_on_the)
-> * Click "ENABLE THE GOOGLE CALENDAR API"
-> * Choose "TV or other limited input device"
-> * Click "DOWNLOAD CLIENT CONFIGURATION"
+* [Create a new Google Cloud Platform (GCP) project](https://developers.google.com/workspace/guides/create-project)
+* [Enable the "Google Calendar API" for your project.](https://console.cloud.google.com/apis/api/calendar-json.googleapis.com/)
+* [Configure the OAuth consent screen](https://developers.google.com/workspace/guides/create-credentials#oauth-client-id) and use the Web Application type. Specify an authorized URI of `http://localhost:8080/` exactly, including the trailing slash.
+* Download the credentials.json file
 
 
 Once you have a `credentials.json` file, create a folder inside `credentials` to put it in, e.g.:
@@ -116,6 +115,28 @@ In production, you can run the application with Gunicorn inside a virtualenv usi
 source ./venv/bin/activate &&
 exec gunicorn --pythonpath ./venv/lib/python3.8/site-packages --worker-class eventlet -w 1 app:app -b 127.0.0.1:8000 --log-level INFO --access-logfile -
 ```
+
+## Troubleshooting
+If you receive `Please delete credentials/foo/token.pickle and restart to re-authenticate with Google Calendar` (`google.auth.exceptions.RefreshError: ('invalid_grant: Bad Request', '{\n  "error": "invalid_grant",\n  "error_description": "Bad Request"\n}')`), then delete the `credentials/xxx/token.pickle` file and restart statuscal. In the stdout you'll see a link to authorize the credentials:
+
+```
+Please visit this URL to authorize this application: https://accounts.google.com/o/oauth2/auth?response_type=code&xxxxxx
+```
+
+Click it to authenticate with the correct Google account.
+
+If you see the error
+
+```
+Error 400: invalid_request
+Localhost URI is not allowed for 'NATIVE_DEVICE' client type.
+```
+
+Then follow these exact steps in Google Cloud's APIs and Services > Credentials to set up a credential with the correct client type:
+* Create credentials -> OAuth client ID
+* Application type: Web Application
+* Authorized redirect URIs: `http://localhost:8080/` (with trailing slash)
+* Download the JSON and replace the `credentials.json` file inside the credentials/ folder.
 
 ## Statusboard configuration
 Statuscal works great when used as the primary widget for [statusboard](https://github.com/jwoglom/statusboard).
