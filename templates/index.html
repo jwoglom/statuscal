@@ -199,6 +199,7 @@ function updateCalendar(events, now) {
 
         var timeMins = minDiff(event.start, now);
         var lengthMins = parseInt(minDiff(event.end, event.start));
+        var overInMins = minDiff(eventend, now);
 
         var startDate = new Date(event.start);
         var endDate = new Date(event.end);
@@ -247,18 +248,18 @@ function updateCalendar(events, now) {
                 length = 'for <b>' + lengthHours + ' hrs</b>';
             }
 
-            if (timeMins < -120) {
-                var endingMins = minDiff(event.end, now);
+            if (timeMins < 0 && overInMins > 120) {
+                var endingMins = minDiff(eventend, now);
                 var endingHours = parseInt(endingMins / 60);
                 length = '<b>' + endingHours + ' hrs</b> left';
-            } else if (timeMins <= -60) {
-                var endingMins = minDiff(event.end, now);
-                var endingHalfHours = parseInt(endingMins / 30);
+            } else if (timeMins < 0 && overInMins >= 60) {
+                var endingMins = minDiff(eventend, now);
+                var endingHalfHours = Math.round(endingMins / 30);
                 length = '<b>' + (endingHalfHours / 2) + ' hr' + (endingHalfHours > 2 ? 's' : '') + '</b> left';
             } else if (timeMins < -2) {
                 var endingMins = minDiff(event.end, now);
                 length = '<b>' + parseInt(endingMins) + ' min</b> left';
-            } else if (timeMins <= 2 && timeMins > -2) {
+            } else if (timeMins <= 2 && overInMins > 2) {
                 time = '<b>starting</b>';
             } else if (timeMins > 2 && timeMins < 60) {
                 time = 'in <b>' + parseInt(timeMins) + ' min</b>';
@@ -332,8 +333,15 @@ window.onload = function() {
         updateCalendar(window.events, new Date());
     }, 1000 * 60);
 
-    // Get new calendar information every 30 minutes
-    window.fetchInterval = setInterval(fetchCalendar, 1000 * 60 * 30);
+    // Get new calendar information every 15 minutes by default
+    var fetchMins = 15;
+    if (window.location.search.indexOf('interval=') != -1) {
+        var intervalParam = window.location.search.split('interval=')[1];
+        intervalParam = intervalParam.split('&')[0];
+        fetchMins = parseInt(intervalParam);
+    }
+
+    window.fetchInterval = setInterval(fetchCalendar, 1000 * 60 * fetchMins);
 
     if (window.location.search.indexOf('zoom=') != -1) {
         var zoomParam = window.location.search.split('zoom=')[1];
