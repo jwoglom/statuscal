@@ -1,12 +1,21 @@
 from gcsa.google_calendar import GoogleCalendar
+from google_auth_oauthlib.flow import InstalledAppFlow
 import google
 import os
+import json
 
 import datetime
 
 def get_calendar(calendar_id, path):
+    def patched_from_client_secrets_file(self, client_secrets_file, scopes, **kwargs):
+        with open(client_secrets_file, "r") as json_file:
+            client_config = json.load(json_file)
+
+        return self.from_client_config(client_config, scopes=scopes, redirect_uri=os.getenv('AUTH_REDIRECT_URI'), **kwargs)
+
+    InstalledAppFlow.from_client_secrets_file = patched_from_client_secrets_file
     try:
-        return GoogleCalendar(calendar=calendar_id, credentials_path=path, authentication_flow_host=os.getenv('AUTH_FLOW_HOST'), authentication_flow_port=os.getenv('AUTH_FLOW_PORT', 8080))
+        return GoogleCalendar(calendar=calendar_id, credentials_path=path)
     except google.auth.exceptions.RefreshError as e:
         raise RuntimeError('Please delete {} and restart to re-authenticate with Google Calendar'.format(path.replace('credentials.json','token.pickle'))) from e
 
