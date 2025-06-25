@@ -7,13 +7,14 @@ import json
 import datetime
 
 def get_calendar(calendar_id, path):
-    def patched_from_client_secrets_file(client_secrets_file, scopes, **kwargs):
+    def patched_from_client_secrets_file(cls, client_secrets_file, scopes, **kwargs):
+        print('Using redirect URI:', os.getenv('AUTH_REDIRECT_URI'))
         with open(client_secrets_file, "r") as json_file:
             client_config = json.load(json_file)
 
-        return InstalledAppFlow.from_client_config(client_config, scopes=scopes, redirect_uri=os.getenv('AUTH_REDIRECT_URI'), **kwargs)
+        return cls.from_client_config(client_config, scopes=scopes, redirect_uri=os.getenv('AUTH_REDIRECT_URI'), **kwargs)
 
-    InstalledAppFlow.from_client_secrets_file = patched_from_client_secrets_file
+    InstalledAppFlow.from_client_secrets_file = lambda *args, **kwargs: patched_from_client_secrets_file(*args, **kwargs)
     try:
         return GoogleCalendar(calendar=calendar_id, credentials_path=path)
     except google.auth.exceptions.RefreshError as e:
