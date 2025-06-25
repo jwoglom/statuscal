@@ -35,7 +35,7 @@ Follow the [Getting Started instructions for google-calendar-simple-api](https:/
 
 * [Create a new Google Cloud Platform (GCP) project](https://developers.google.com/workspace/guides/create-project)
 * [Enable the "Google Calendar API" for your project.](https://console.cloud.google.com/apis/api/calendar-json.googleapis.com/)
-* [Configure the OAuth consent screen](https://developers.google.com/workspace/guides/create-credentials#oauth-client-id) and use the Web Application type. Specify an authorized URI of `http://localhost:8080/` exactly, including the trailing slash.
+* [Configure the OAuth consent screen](https://developers.google.com/workspace/guides/create-credentials#oauth-client-id) and use the Web Application type. <s>Specify an authorized URI of `http://localhost:8080/` exactly, including the trailing slash.</s> Specify an authorized URI of _any top-level domain that you own_. You will specify this domain as the `AUTH_FLOW_HOST` environment variable to statuscal.
 * Download the credentials.json file
 
 
@@ -103,7 +103,7 @@ boards = {
 Now, simply start the Flask server:
 
 ```bash
-FLASK_APP=app.py flask run
+FLASK_APP=app.py AUTH_FLOW_HOST=https://yourdomain flask run
 ```
 
 The very first time you run Statuscal, you will be prompted in the terminal to authorize with your Google account.
@@ -135,8 +135,9 @@ Localhost URI is not allowed for 'NATIVE_DEVICE' client type.
 Then follow these exact steps in Google Cloud's APIs and Services > Credentials to set up a credential with the correct client type:
 * Create credentials -> OAuth client ID
 * Application type: Web Application
-* Authorized redirect URIs: `http://localhost:8080/` (with trailing slash)
+* Authorized redirect URIs: <s>`http://localhost:8080/` (with trailing slash)</s> _any top-level domain that you own_. 
 * Download the JSON and replace the `credentials.json` file inside the credentials/ folder.
+* Set `AUTH_FLOW_HOST=yourdomain.com` environment variable.
 
 ## Statusboard configuration
 Statuscal works great when used as the primary widget for [statusboard](https://github.com/jwoglom/statusboard).

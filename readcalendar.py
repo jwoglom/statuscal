@@ -1,11 +1,12 @@
 from gcsa.google_calendar import GoogleCalendar
 import google
+import os
 
 import datetime
 
 def get_calendar(calendar_id, path):
     try:
-        return GoogleCalendar(calendar=calendar_id, credentials_path=path)
+        return GoogleCalendar(calendar=calendar_id, credentials_path=path, authentication_flow_host=os.getenv('AUTH_FLOW_HOST'), authentication_flow_port=os.getenv('AUTH_FLOW_PORT', 8080))
     except google.auth.exceptions.RefreshError as e:
         raise RuntimeError('Please delete {} and restart to re-authenticate with Google Calendar'.format(path.replace('credentials.json','token.pickle'))) from e
 
