@@ -91,7 +91,7 @@ def gcal_credentials(
             else:
                 credentials_path = os.path.join(credentials_dir, credentials_file)
                 flow = InstalledAppFlow.from_client_secrets_file(credentials_path, scopes, redirect_uri=os.getenv('AUTH_REDIRECT_URI'))
-                credentials = _run_local_server(flow, host=host, port=port, open_browser=False)
+                credentials = _run_local_server(flow, host=host, port=port, open_browser=False, redirect_uri_trailing_slash=False, access_type=None)
 
             if save_token:
                 with open(token_path, 'wb') as token_file:
