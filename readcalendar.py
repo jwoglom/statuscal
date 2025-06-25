@@ -1,25 +1,70 @@
+from typing import List
 from gcsa.google_calendar import GoogleCalendar
 from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+
+import pickle
 import google
 import os
 import json
 
 import datetime
 
-def get_calendar(calendar_id, path):
-    def patched_from_client_secrets_file(client_secrets_file, scopes, **kwargs):
-        print('Using redirect URI:', os.getenv('AUTH_REDIRECT_URI'))
-        with open(client_secrets_file, "r") as json_file:
-            client_config = json.load(json_file)
-        
-        if not kwargs:
-            kwargs = {}
-        kwargs['redirect_uri'] = os.getenv('AUTH_REDIRECT_URI')
-        return InstalledAppFlow.from_client_config(client_config, scopes=scopes, **kwargs)
+def gcal_credentials(
+        token_path: str = None,
+        save_token: bool = True,
+        read_only: bool = False):
+    credentials_path = credentials_path or GoogleCalendar._get_default_credentials_path()
+    credentials_dir, credentials_file = os.path.split(credentials_path)
+    token_path = token_path or os.path.join(credentials_dir, 'token.pickle')
+    scopes = [GoogleCalendar._READ_WRITE_SCOPES + ('.readonly' if read_only else '')]
 
-    InstalledAppFlow.from_client_secrets_file = lambda *args, **kwargs: patched_from_client_secrets_file(*args, **kwargs)
+    authentication_flow_host = os.getenv('AUTH_FLOW_HOST')
+    authentication_flow_port = os.getenv('AUTH_FLOW_PORT', 8080)
+
+    def _get_credentials(
+            token_path: str,
+            credentials_dir: str,
+            credentials_file: str,
+            scopes: List[str],
+            save_token: bool,
+            host: str,
+            port: int
+    ) -> Credentials:
+        credentials = None
+
+        if os.path.exists(token_path):
+            with open(token_path, 'rb') as token_file:
+                credentials = pickle.load(token_file)
+
+        if not credentials or not credentials.valid:
+            if credentials and credentials.expired and credentials.refresh_token:
+                credentials.refresh(Request())
+            else:
+                credentials_path = os.path.join(credentials_dir, credentials_file)
+                flow = InstalledAppFlow.from_client_secrets_file(credentials_path, scopes, redirect_uri=os.getenv('AUTH_REDIRECT_URI'))
+                credentials = flow.run_local_server(host=host, port=port)
+
+            if save_token:
+                with open(token_path, 'wb') as token_file:
+                    pickle.dump(credentials, token_file)
+
+        return credentials
+
+    return _get_credentials(
+        token_path,
+        credentials_dir,
+        credentials_file,
+        scopes,
+        save_token,
+        authentication_flow_host,
+        authentication_flow_port
+    )
+
+def get_calendar(calendar_id, path):
     try:
-        return GoogleCalendar(calendar=calendar_id, credentials_path=path)
+        return GoogleCalendar(calendar=calendar_id, credentials_path=path, credentials=gcal_credentials())
     except google.auth.exceptions.RefreshError as e:
         raise RuntimeError('Please delete {} and restart to re-authenticate with Google Calendar'.format(path.replace('credentials.json','token.pickle'))) from e
 
