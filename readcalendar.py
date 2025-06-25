@@ -1,6 +1,6 @@
 from typing import List
 from gcsa.google_calendar import GoogleCalendar
-from google_auth_oauthlib.flow import InstalledAppFlow, _RedirectWSGIApp, _WSGIRequestHandler, _DEFAULT_AUTH_PROMPT_MESSAGE, _DEFAULT_WEB_SUCCESS_MESSAGE
+from google_auth_oauthlib.flow import InstalledAppFlow, _RedirectWSGIApp, _WSGIRequestHandler, InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
@@ -34,8 +34,8 @@ def gcal_credentials(
         flow,
         host="localhost",
         port=8080,
-        authorization_prompt_message=_DEFAULT_AUTH_PROMPT_MESSAGE,
-        success_message=_DEFAULT_WEB_SUCCESS_MESSAGE,
+        authorization_prompt_message=InstalledAppFlow._DEFAULT_AUTH_PROMPT_MESSAGE,
+        success_message=InstalledAppFlow._DEFAULT_WEB_SUCCESS_MESSAGE,
         open_browser=True,
         redirect_uri_trailing_slash=True,
         **kwargs
