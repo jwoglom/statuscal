@@ -48,7 +48,7 @@ def gcal_credentials(
         )
 
         redirect_uri_format = (
-            "http://{}:{}/" if redirect_uri_trailing_slash else "http://{}:{}"
+            "https://{}:{}/" if redirect_uri_trailing_slash else "https://{}:{}"
         )
         flow.redirect_uri = redirect_uri_format.format(host, local_server.server_port)
         auth_url, _ = flow.authorization_url(**kwargs)
