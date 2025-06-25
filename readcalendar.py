@@ -1,6 +1,6 @@
 from typing import List
 from gcsa.google_calendar import GoogleCalendar
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google_auth_oauthlib.flow import InstalledAppFlow, _RedirectWSGIApp, _WSGIRequestHandler, _DEFAULT_AUTH_PROMPT_MESSAGE, _DEFAULT_WEB_SUCCESS_MESSAGE
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
@@ -8,6 +8,11 @@ import pickle
 import google
 import os
 import json
+import wsgiref.simple_server
+import wsgiref.util
+import webbrowser
+
+
 
 import datetime
 
@@ -15,14 +20,55 @@ def gcal_credentials(
         credentials_path: str = None,
         token_path: str = None,
         save_token: bool = True,
-        read_only: bool = False):
+        read_only: bool = False
+    ):
     credentials_path = credentials_path or GoogleCalendar._get_default_credentials_path()
     credentials_dir, credentials_file = os.path.split(credentials_path)
     token_path = token_path or os.path.join(credentials_dir, 'token.pickle')
     scopes = [GoogleCalendar._READ_WRITE_SCOPES + ('.readonly' if read_only else '')]
 
     authentication_flow_host = os.getenv('AUTH_FLOW_HOST')
-    authentication_flow_port = os.getenv('AUTH_FLOW_PORT', 8080)
+    authentication_flow_port = int(os.getenv('AUTH_FLOW_PORT', 8080))
+
+    def _run_local_server(
+        flow,
+        host="localhost",
+        port=8080,
+        authorization_prompt_message=_DEFAULT_AUTH_PROMPT_MESSAGE,
+        success_message=_DEFAULT_WEB_SUCCESS_MESSAGE,
+        open_browser=True,
+        redirect_uri_trailing_slash=True,
+        **kwargs
+    ):
+        wsgi_app = _RedirectWSGIApp(success_message)
+        # Fail fast if the address is occupied
+        wsgiref.simple_server.WSGIServer.allow_reuse_address = False
+        local_server = wsgiref.simple_server.make_server(
+            'localhost', port, wsgi_app, handler_class=_WSGIRequestHandler
+        )
+
+        redirect_uri_format = (
+            "http://{}:{}/" if redirect_uri_trailing_slash else "http://{}:{}"
+        )
+        flow.redirect_uri = redirect_uri_format.format(host, local_server.server_port)
+        auth_url, _ = flow.authorization_url(**kwargs)
+
+        if open_browser:
+            webbrowser.open(auth_url, new=1, autoraise=True)
+
+        print(authorization_prompt_message.format(url=auth_url))
+
+        local_server.handle_request()
+
+        # Note: using https here because oauthlib is very picky that
+        # OAuth 2.0 should only occur over https.
+        authorization_response = wsgi_app.last_request_uri.replace("http", "https")
+        flow.fetch_token(authorization_response=authorization_response)
+
+        # This closes the socket
+        local_server.server_close()
+
+        return flow.credentials
 
     def _get_credentials(
             token_path: str,
@@ -45,7 +91,7 @@ def gcal_credentials(
             else:
                 credentials_path = os.path.join(credentials_dir, credentials_file)
                 flow = InstalledAppFlow.from_client_secrets_file(credentials_path, scopes, redirect_uri=os.getenv('AUTH_REDIRECT_URI'))
-                credentials = flow.run_local_server(host=host, port=port)
+                credentials = _run_local_server(flow, host=host, port=port, open_browser=False)
 
             if save_token:
                 with open(token_path, 'wb') as token_file:
