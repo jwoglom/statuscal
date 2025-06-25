@@ -7,12 +7,15 @@ import json
 import datetime
 
 def get_calendar(calendar_id, path):
-    def patched_from_client_secrets_file(cls, client_secrets_file, scopes, **kwargs):
+    def patched_from_client_secrets_file(client_secrets_file, scopes, **kwargs):
         print('Using redirect URI:', os.getenv('AUTH_REDIRECT_URI'))
         with open(client_secrets_file, "r") as json_file:
             client_config = json.load(json_file)
-
-        return cls.from_client_config(client_config, scopes=scopes, redirect_uri=os.getenv('AUTH_REDIRECT_URI'), **kwargs)
+        
+        if not kwargs:
+            kwargs = {}
+        kwargs['redirect_uri'] = os.getenv('AUTH_REDIRECT_URI')
+        return InstalledAppFlow.from_client_config(client_config, scopes=scopes, **kwargs)
 
     InstalledAppFlow.from_client_secrets_file = lambda *args, **kwargs: patched_from_client_secrets_file(*args, **kwargs)
     try:
