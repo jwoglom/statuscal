@@ -65,7 +65,7 @@ def gcal_credentials(
 
 def get_calendar(calendar_id, path):
     try:
-        return GoogleCalendar(calendar=calendar_id, credentials_path=path, credentials=gcal_credentials())
+        return GoogleCalendar(calendar=calendar_id, credentials_path=path, credentials=gcal_credentials(credentials_path=path))
     except google.auth.exceptions.RefreshError as e:
         raise RuntimeError('Please delete {} and restart to re-authenticate with Google Calendar'.format(path.replace('credentials.json','token.pickle'))) from e
 
