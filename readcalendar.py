@@ -12,6 +12,7 @@ import json
 import datetime
 
 def gcal_credentials(
+        credentials_path: str = None,
         token_path: str = None,
         save_token: bool = True,
         read_only: bool = False):
