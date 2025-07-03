@@ -20,8 +20,10 @@ def gcal_credentials(
         credentials_path: str = None,
         token_path: str = None,
         save_token: bool = True,
-        read_only: bool = False
+        read_only: bool = False,
+        force: bool = False,
     ):
+    print(f"readcalendar gcal_credentials({credentials_path=}, {token_path=}, {save_token=}, {read_only=}, {force=})")
     credentials_path = credentials_path or GoogleCalendar._get_default_credentials_path()
     credentials_dir, credentials_file = os.path.split(credentials_path)
     token_path = token_path or os.path.join(credentials_dir, 'token.pickle')
@@ -40,6 +42,7 @@ def gcal_credentials(
         redirect_uri_trailing_slash=True,
         **kwargs
     ):
+        print(f"readcalendar gcal_credentials run_local_server")
         wsgi_app = _RedirectWSGIApp(success_message)
         # Fail fast if the address is occupied
         wsgiref.simple_server.WSGIServer.allow_reuse_address = False
@@ -85,13 +88,18 @@ def gcal_credentials(
             with open(token_path, 'rb') as token_file:
                 credentials = pickle.load(token_file)
 
-        if not credentials or not credentials.valid:
+        print(f"readcalendar get_credentials: {credentials=}")
+        if not credentials or not credentials.valid or force:
+            print(f"readcalendar get_credentials: invalid! {force=}")
+            if credentials:
+                print(f"readcalendar get_credentials: {credentials.expired=} {credentials.refresh_token=}")
             if credentials and credentials.expired and credentials.refresh_token:
+                print(f"readcalendar get_credentials: {credentials.expired=} {credentials.refresh_token=}")
                 credentials.refresh(Request())
             else:
                 credentials_path = os.path.join(credentials_dir, credentials_file)
                 flow = InstalledAppFlow.from_client_secrets_file(credentials_path, scopes, redirect_uri=os.getenv('AUTH_REDIRECT_URI'))
-                credentials = _run_local_server(flow, host=host, port=port, open_browser=False, redirect_uri_trailing_slash=False, access_type=None)
+                credentials = _run_local_server(flow, host=host, port=port, open_browser=False, redirect_uri_trailing_slash=False, access_type='offline', prompt='consent')
 
             if save_token:
                 with open(token_path, 'wb') as token_file:
@@ -113,6 +121,7 @@ def get_calendar(calendar_id, path):
     try:
         return GoogleCalendar(calendar=calendar_id, credentials_path=path, credentials=gcal_credentials(credentials_path=path))
     except google.auth.exceptions.RefreshError as e:
+        print("readcalendar get_credentials refresh error: {e=}")
         raise RuntimeError('Please delete {} and restart to re-authenticate with Google Calendar'.format(path.replace('credentials.json','token.pickle'))) from e
 
 def event_to_json(event, calendar_name):
@@ -162,3 +171,17 @@ def get_calendar_events(credentials_config, max_days=-1):
 
     events.sort(key=lambda e: to_datetime(e['start']).replace(tzinfo=None))
     return events
+
+
+if __name__ == '__main__':
+    import sys
+    force = sys.argv[-1] in ('-f', '--force')
+    from config import boards
+    for slug, board in boards.items():
+        print(f"{slug=} {board=}")
+        for b in board:
+            print(f"calendar: {b}")
+            c = gcal_credentials(credentials_path='{}/credentials.json'.format(b['credentials_path']), force=force)
+            print(f"credentials: {c} {c.expiry=} {c._refresh_token=} {c._token_uri=} {c._client_id=} {c._client_secret=}")
+            print(c.refresh(Request()))
+            print("----\n")
